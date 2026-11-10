@@ -17,3 +17,14 @@ foreach (Customer c in customers)
 {
     Console.WriteLine($" {c.Id} |{c.Name}| {c.Email}");
 }
+
+
+// CustomerRepository customerRepo = new CustomerRepository(connection);
+// Console.WriteLine("creating customer");
+// int newCustomerId = await customerRepo.CreateCustomer(
+//     "New Newsome", 
+//     "Newsome@gmail.com", 
+//     "999000999"
+// );
+
+// Console.WriteLine($"customer created,  {newCustomerId}");

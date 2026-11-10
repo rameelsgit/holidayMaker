@@ -10,7 +10,7 @@ public class CustomerRepository(MySqlConnection connection)
     {
         // await using, clears after getting information       
         await using var command = new MySqlCommand(
-            "SELECT id, name, email, phone_number FROM customers ORDER BY name ASC;", 
+            "SELECT id, name, email, phone_number FROM customers ORDER BY id ASC;", 
             connection
         );
         // reads the matching information back 
@@ -30,4 +30,25 @@ public class CustomerRepository(MySqlConnection connection)
             ));
         }
         return customers;
-    }};
+    }
+    
+    // method to create a customer
+    public async Task<int> CreateCustomer(string name, string email, string phone)
+    {
+        await using var command = new MySqlCommand(
+            "INSERT INTO customers (name, email, phone_number) VALUES (@name, @email, @phone);", 
+            connection
+        );
+        // placeholder gets connected with actual data of customer
+        command.Parameters.AddWithValue("@name", name);
+        command.Parameters.AddWithValue("@email", email);
+        command.Parameters.AddWithValue("@phone", phone);
+        // excecutes insert query 
+        await command.PrepareAsync();
+        await command.ExecuteNonQueryAsync();
+        // returns the auto increment id
+        return (int)command.LastInsertedId;
+    }
+    
+    
+    };
