@@ -187,56 +187,12 @@ static async Task<Customer?> ChooseCustomer(CustomerRepository repo)
 // method handles the searching of rooms
 static async Task SearchRooms(BookingRepository repo)
 {
-    Console.WriteLine("--SEARCH ROOMS--");
-    // while-loop makes sure city is entered and not empty & breaks once input is valid
-    string city;
-    while (true)
-    {
-    Console.Write("City: ");
-    city = Console.ReadLine()!;
-    if (!string.IsNullOrWhiteSpace(city))
-    {
-        break; 
-    }
-    Console.WriteLine("Cant be empty. Try again.");
-    }
-
-    // makes sure date id valid
-    DateTime checkIn;
-    while (true)
-    {
-        Console.Write("Check-in (YYYY-MM-DD): ");
-        if (DateTime.TryParse(Console.ReadLine(), out checkIn))
-        {
-            break; 
-        }
-        Console.WriteLine("Invalid date. Try again (e.g 2026-12-15)");
-    }
-
-    // makes sure checkout date is after check in
-    DateTime checkOut;
-    while (true)
-    {
-        Console.Write("Check-out (YYYY-MM-DD): ");
-        if (DateTime.TryParse(Console.ReadLine(), out checkOut) && checkOut > checkIn)
-        {
-            break;
-        }
-        Console.WriteLine("Check-out must be after check-in. Try again.");
-    }
-
-    // amount of guests must be over 0 and be int 
-    int guests;
-    while (true)
-    {
-        Console.Write("Guests: ");
-        if (int.TryParse(Console.ReadLine(), out guests) && guests > 0)
-        {
-            break;
-        }
-        Console.WriteLine("Enter a positive number");
-    }
-
+    Console.WriteLine("-- SEARCH ROOMS --");
+    // changed to input helpers as too much code was being repeated
+    string city = InputHelper.ReadString("City: ");
+    DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
+    DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
+    int guests = InputHelper.ReadInt("Guests: ");
     // matching available rooms with the database
     List<Room> rooms = await repo.SearchRooms(city, checkIn, checkOut, guests);
 
@@ -258,7 +214,28 @@ static async Task SearchRooms(BookingRepository repo)
 // method to create a booking 
 static async Task CreateBooking(BookingRepository repo, Customer? activeCustomer)
 {
-    
+    // checks if a customer has been chosen for a booking
+    if (activeCustomer == null)
+    {
+        Console.WriteLine("Choose a customer before creating a booking");
+        Wait();
+        return;
+    }
+
+    Console.WriteLine($"-- CREATE BOOKING FOR: {activeCustomer.Name} --");
+    // using input helpers as the validation for these input fields was the same and too long
+    int roomId = InputHelper.ReadInt("Enter Room ID to book: ");
+    DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
+    DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
+    int guests = InputHelper.ReadInt("Number of guests: ");
+    // calculating total price 
+    int nights = (checkOut - checkIn).Days;
+    decimal totalPrice = nights * 1000;
+    // booking gets added to the database
+    int bookingId = await repo.CreateBooking(activeCustomer.Id, roomId, checkIn, checkOut, guests, totalPrice);
+    Console.WriteLine($"Booking completed | booking ID: {bookingId}");
+    Console.WriteLine($"{nights} nights | Total price: {totalPrice:C}");
+    Wait();
 }
 
 static void Wait()

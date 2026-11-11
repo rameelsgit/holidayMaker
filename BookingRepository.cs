@@ -49,7 +49,7 @@ public class BookingRepository(MySqlConnection connection)
     public async Task<int> CreateBooking(int customerId, int roomId, DateTime checkIn, DateTime checkOut, int guests, decimal totalPrice)
     {
         string sql = @"
-            INSERT INTO bookings (customers_id, room_id, check_in, check_out, amount_guests, total_price)
+            INSERT INTO bookings (customer_id, room_id, check_in, check_out, amount_guests, total_price)
             VALUES (@customerId, @roomId, @checkIn, @checkOut, @guests, @totalPrice);";
         await using MySqlCommand command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@customerId", customerId);
