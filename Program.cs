@@ -5,8 +5,9 @@ string connectionString = "Server=localhost;Database=holiday_maker;User ID=root;
 
 await using var connection = new MySqlConnection(connectionString);
 await connection.OpenAsync();
-//instanciates cutomerrepository class, opens connection
+//instanciates cutomerrepository & bookingrepository class, opens connection
 CustomerRepository customerRepo = new CustomerRepository(connection);
+BookingRepository bookingRepo = new BookingRepository(connection);
 
 //variable stores selected customer, starts as null
 Customer? selectedCustomer = null;
@@ -30,7 +31,9 @@ while (activeMenu)
     Console.WriteLine("1. Show all customers");
     Console.WriteLine("2. Register new customer");
     Console.WriteLine("3. Choose customer");
-    Console.WriteLine("4. Exit");
+    Console.WriteLine("4. Find available rooms");
+    Console.WriteLine("5. Create a booking");
+    Console.WriteLine("6. Exit");
     Console.WriteLine("\n");
     Console.Write("Choose an option 1-4: ");
 
@@ -49,6 +52,12 @@ while (activeMenu)
             selectedCustomer = await ChooseCustomer(customerRepo);
             break;
         case "4":
+            await SearchRooms(bookingRepo);
+                break;
+        case "5":
+            await CreateBooking(bookingRepo, selectedCustomer);
+            break;
+        case "6":
             activeMenu = false;
             Console.WriteLine("Menu has been exited");
             break;
@@ -104,7 +113,7 @@ static async Task<Customer?> CreatedCustomer(CustomerRepository repo)
     Console.Write("Phone Number: ");
     string phone = Console.ReadLine()!;
     // check if phone number is empty
-    if (string.IsNullOrWhiteSpace(email))
+    if (string.IsNullOrWhiteSpace(phone))
     {
         Console.WriteLine("Number cannot be empty");
         Wait();
@@ -173,6 +182,83 @@ static async Task<Customer?> ChooseCustomer(CustomerRepository repo)
     Console.WriteLine($"\nNo customer found with that ID");
     Wait();
     return null;
+}
+
+// method handles the searching of rooms
+static async Task SearchRooms(BookingRepository repo)
+{
+    Console.WriteLine("--SEARCH ROOMS--");
+    // while-loop makes sure city is entered and not empty & breaks once input is valid
+    string city;
+    while (true)
+    {
+    Console.Write("City: ");
+    city = Console.ReadLine()!;
+    if (!string.IsNullOrWhiteSpace(city))
+    {
+        break; 
+    }
+    Console.WriteLine("Cant be empty. Try again.");
+    }
+
+    // makes sure date id valid
+    DateTime checkIn;
+    while (true)
+    {
+        Console.Write("Check-in (YYYY-MM-DD): ");
+        if (DateTime.TryParse(Console.ReadLine(), out checkIn))
+        {
+            break; 
+        }
+        Console.WriteLine("Invalid date. Try again (e.g 2026-12-15)");
+    }
+
+    // makes sure checkout date is after check in
+    DateTime checkOut;
+    while (true)
+    {
+        Console.Write("Check-out (YYYY-MM-DD): ");
+        if (DateTime.TryParse(Console.ReadLine(), out checkOut) && checkOut > checkIn)
+        {
+            break;
+        }
+        Console.WriteLine("Check-out must be after check-in. Try again.");
+    }
+
+    // amount of guests must be over 0 and be int 
+    int guests;
+    while (true)
+    {
+        Console.Write("Guests: ");
+        if (int.TryParse(Console.ReadLine(), out guests) && guests > 0)
+        {
+            break;
+        }
+        Console.WriteLine("Enter a positive number");
+    }
+
+    // matching available rooms with the database
+    List<Room> rooms = await repo.SearchRooms(city, checkIn, checkOut, guests);
+
+    // shows resukt of searched rooms
+    Console.WriteLine($"\n--SEARCH RESULTS ({rooms.Count} found)--");
+    if (rooms.Count == 0)
+    {
+        Console.WriteLine("No available rooms matched your search");
+    }
+    else
+    {
+        foreach (Room r in rooms)
+        {
+            Console.WriteLine($"Room ID: {r.Id} | Hotel: {r.HotelName} | Room No: {r.RoomNumber} | Price: {r.PricePerNight:C}/night");
+        }
+    }
+    Wait();
+}
+// method to create a booking 
+static async Task CreateBooking(BookingRepository repo, Customer? activeCustomer)
+{
+    
 }
 
 static void Wait()
