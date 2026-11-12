@@ -38,7 +38,7 @@ while (activeMenu)
     Console.WriteLine("8. Cancel a booking");
     Console.WriteLine("9. Exit");
     Console.WriteLine("\n");
-    Console.Write("Choose an option 1-4: ");
+    Console.Write("Choose an option 1-9: ");
 
     // stores operators choice in choice variable to know which case to use
     string? choice = Console.ReadLine();
@@ -273,7 +273,7 @@ static async Task ShowCustomerBookings(BookingRepository repo, Customer? activeC
         foreach (Booking b in bookings)
         {
             Console.WriteLine($"Booking ID: {b.Id} Hotel: {b.HotelName} | Room: {b.RoomNumber}");
-            Console.WriteLine($"\nDates: {b.CheckIn:yyyy-MM-dd} to {b.CheckOut:yyyy-MM-dd} | Guests: {b.AmountGuests} | Total: {b.TotalPrice:C}");
+            Console.WriteLine($"Dates: {b.CheckIn:yyyy-MM-dd} to {b.CheckOut:yyyy-MM-dd} | Guests: {b.AmountGuests} | Total: {b.TotalPrice:C}\n");
         }
     }
     Wait();
