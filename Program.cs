@@ -103,34 +103,10 @@ static async Task ListCustomers(CustomerRepository repo)
 static async Task<Customer?> CreatedCustomer(CustomerRepository repo)
 {
     Console.WriteLine("--REGISTER NEW CUSTOMER--");
-    Console.Write("Name: ");
-    string name = Console.ReadLine()!;
-    // checks if name is valid 
-    if (string.IsNullOrWhiteSpace(name))
-    {
-        Console.WriteLine("Customer name cannot be empty");
-        Wait();
-        return null;
-    }
-    Console.Write("Email: ");
-    string email = Console.ReadLine()!;
-    // checks if email is valid
-    if (string.IsNullOrWhiteSpace(email))
-    {
-        Console.WriteLine("Email cannot be empty");
-        Wait();
-        return null;
-    }
-
-    Console.Write("Phone Number: ");
-    string phone = Console.ReadLine()!;
-    // check if phone number is empty
-    if (string.IsNullOrWhiteSpace(phone))
-    {
-        Console.WriteLine("Number cannot be empty");
-        Wait();
-        return null;
-    }
+    // checks if name, email, number is valid using the input helper
+    string name = InputHelper.ReadString("Full name: ");
+    string email = InputHelper.ReadString("Email: ");
+    string phone = InputHelper.ReadString("Phone Number: ");
     // save customer to database with a new id
     int newId = await repo.CreateCustomer(name, email, phone);
     
