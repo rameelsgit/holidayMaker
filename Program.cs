@@ -33,7 +33,10 @@ while (activeMenu)
     Console.WriteLine("3. Choose customer");
     Console.WriteLine("4. Find available rooms");
     Console.WriteLine("5. Create a booking");
-    Console.WriteLine("6. Exit");
+    Console.WriteLine("6. Show customer bookings");
+    Console.WriteLine("7. Update amount of guests");
+    Console.WriteLine("8. Cancel a booking");
+    Console.WriteLine("9. Exit");
     Console.WriteLine("\n");
     Console.Write("Choose an option 1-4: ");
 
@@ -58,6 +61,15 @@ while (activeMenu)
             await CreateBooking(bookingRepo, selectedCustomer);
             break;
         case "6":
+            await ShowCustomerBookings(bookingRepo, selectedCustomer);
+            break;
+        case "7":
+            await UpdateGuests(bookingRepo);
+            break;
+        case "8":
+            await DeleteBooking(bookingRepo);
+            break;
+        case "9":
             activeMenu = false;
             Console.WriteLine("Menu has been exited");
             break;
@@ -235,6 +247,75 @@ static async Task CreateBooking(BookingRepository repo, Customer? activeCustomer
     int bookingId = await repo.CreateBooking(activeCustomer.Id, roomId, checkIn, checkOut, guests, totalPrice);
     Console.WriteLine($"Booking completed | booking ID: {bookingId}");
     Console.WriteLine($"{nights} nights | Total price: {totalPrice:C}");
+    Wait();
+}
+
+// method shows a all of a customers bookings 
+static async Task ShowCustomerBookings(BookingRepository repo, Customer? activeCustomer)
+{   //makes sure customer is chosen
+    if (activeCustomer == null)
+    {
+        Console.WriteLine("Please choose a customer first");
+        Wait();
+        return;
+    }
+
+    Console.WriteLine($"--BOOKINGS FOR {activeCustomer.Name} --");
+    //gets list of bookings and checks if customer has a booking
+    List<Booking> bookings = await repo.GetCustomerBookings(activeCustomer.Id);
+    if (bookings.Count == 0)
+    {
+        Console.WriteLine("No bookings found");
+    }
+    else
+    {
+        // foreach booking that exixts, it gets displayed 
+        foreach (Booking b in bookings)
+        {
+            Console.WriteLine($"Booking ID: {b.Id} Hotel: {b.HotelName} | Room: {b.RoomNumber}");
+            Console.WriteLine($"\nDates: {b.CheckIn:yyyy-MM-dd} to {b.CheckOut:yyyy-MM-dd} | Guests: {b.AmountGuests} | Total: {b.TotalPrice:C}");
+        }
+    }
+    Wait();
+}
+// method updates a customers amount of guests
+static async Task UpdateGuests(BookingRepository repo)
+{
+    Console.WriteLine("--UPDATE GUEST COUNT--");
+    //uses my input helpers to validate input 
+    int bookingId = InputHelper.ReadInt("Enter Booking ID: ");
+    int newGuests = InputHelper.ReadInt("Enter new number of guests: ");
+    
+    // return true if update was successful
+    bool success = await repo.UpdateGuests(bookingId, newGuests);
+    if (success)
+    {
+        Console.WriteLine("Booking update completed");
+    }
+    else
+    {
+        Console.WriteLine("Failed to update. check booking ID or if guests exceed room capacity");
+    }
+    Wait();
+}
+// deletes abooking 
+static async Task DeleteBooking(BookingRepository repo)
+{
+    Console.WriteLine("--CANCEL BOOKING--");
+
+    // using inputhelper to validate input
+    int bookingId = InputHelper.ReadInt("Enter Booking ID to cancel: ");
+
+    // executes query to delete
+    bool success = await repo.DeleteBooking(bookingId);
+    if (success)
+    {
+        Console.WriteLine($"Booking ID {bookingId} canceled");
+    }
+    else
+    {
+        Console.WriteLine("Booking ID not found");
+    }
     Wait();
 }
 

@@ -62,4 +62,70 @@ public class BookingRepository(MySqlConnection connection)
         await command.ExecuteNonQueryAsync();
         return (int)command.LastInsertedId;
     }
+    // method to see a single customers bookings 
+    public async Task<List<Booking>> GetCustomerBookings(int customerId)
+    {
+        // query for customers bookings
+        string sql = @"
+            SELECT b.id, b.customer_id, b.room_id, b.check_in, b.check_out, 
+            b.amount_guests, b.total_price, h.name AS hotel_name, r.room_number
+            FROM bookings b
+            JOIN rooms r ON b.room_id = r.id
+            JOIN hotels h ON r.hotels_id = h.id
+            WHERE b.customer_id = @customerId
+            ORDER BY b.check_in ASC;";
+        await using MySqlCommand command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@customerId", customerId);
+
+        // get results and store object in bookings list
+        await using MySqlDataReader reader = await command.ExecuteReaderAsync();
+        List<Booking> bookings = new List<Booking>();
+
+        while (await reader.ReadAsync())
+        {
+            bookings.Add(new Booking(
+                reader.GetInt32("id"),
+                reader.GetInt32("customer_id"),
+                reader.GetInt32("room_id"),
+                reader.GetDateTime("check_in"),
+                reader.GetDateTime("check_out"),
+                reader.GetInt32("amount_guests"),
+                reader.GetDecimal("total_price"),
+                reader.GetString("hotel_name"),
+                reader.GetString("room_number")
+            ));
+        }
+        // return list of booking
+        return bookings;
+    }
+
+    // method uppdates the amount of guests 
+    public async Task<bool> UpdateGuests(int bookingId, int newGuests)
+    {
+        // makes sure new guest count doent exceed room capacit
+        string sql = @"
+            UPDATE bookings
+            SET amount_guests = @newGuests
+            WHERE id = @bookingId
+              AND @newGuests <= (SELECT capacity FROM rooms WHERE id = room_id);";
+
+        await using MySqlCommand command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@newGuests", newGuests);
+        command.Parameters.AddWithValue("@bookingId", bookingId);
+        //return uppdated changes if above 0
+        int rowsAffected = await command.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
+    }
+    // this method helps delete a booking
+    public async Task<bool> DeleteBooking(int bookingId)
+    {
+        // finds specified booking id
+        string sql = "DELETE FROM bookings WHERE id = @bookingId;";
+        await using MySqlCommand command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@bookingId", bookingId);
+        // executes the delete statement & return if id was found
+        int rowsAffected = await command.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
+    }
+
 }
