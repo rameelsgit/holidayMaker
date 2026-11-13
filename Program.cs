@@ -183,15 +183,18 @@ static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? act
         DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
         int guests = InputHelper.ReadInt("Number of guests: ");
 
+        // optional filters to specify search using input helper
+        Console.WriteLine("\n--FILTERS--");
+        bool requirePool = InputHelper.ReadYesNo("Pool required? (y/n): ");
+        bool requireRestaurant = InputHelper.ReadYesNo("Restaurant required? (y/n): ");
+
         // searches available rooms that match the criteria & displays results
         List<Room> availableRooms = await bookingRepo.SearchRooms(city, checkIn, checkOut, guests);
         Console.WriteLine($"\n-- SEARCH RESULTS ({availableRooms.Count} available) --");
         if (availableRooms.Count == 0)
         {
             Console.WriteLine("No rooms matched your search");
-            Console.Write("Do you want to search again? (y/n): ");
-            string retry = Console.ReadLine()!.Trim().ToLower();
-            if (retry == "y")
+            if (InputHelper.ReadYesNo("Do you want to search again? (y/n): "))
             {
                 Console.WriteLine();
                 continue;
@@ -205,9 +208,7 @@ static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? act
         }
 
         // operator gets option to book a room or exit results
-        Console.Write("\nDo you want to book one of these rooms? (y/n): ");
-        string answer = Console.ReadLine()!.Trim().ToLower();
-        if (answer != "y")
+        if (!InputHelper.ReadYesNo("\nDo you want to book one of these rooms? (y/n): "))
         {
             return;
         }

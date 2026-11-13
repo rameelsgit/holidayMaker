@@ -56,4 +56,24 @@ public static class InputHelper
             Console.WriteLine("Check-out must be after check-in date");
         }
     }
+
+    // yes/no input for optional filters
+    public static bool ReadYesNo(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string input = Console.ReadLine()!.Trim().ToLower();
+            if (input == "y")
+            {
+                return true;
+            }
+            if (input == "n")
+            {
+                return false;
+            }
+            Console.WriteLine("Enter 'y' or 'n'.");
+        }
+    }
+
 }
