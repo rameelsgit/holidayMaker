@@ -3,32 +3,76 @@ using MySqlConnector;
 
 public class BookingRepository(MySqlConnection connection)
 {
-    // search for available rooms based on city and dates
-    public async Task<List<Room>> SearchRooms(string city, DateTime checkIn, DateTime checkOut, int guests)
+    // gets all cities from the hotels table to show what cities exist
+    public async Task<List<string>> GetAvailableCities()
     {
-        string sql = @"
-            SELECT r.id, r.hotels_id, r.room_number, r.capacity, r.price_per_night,
-            h.name AS hotel_name, h.city, h.rating
+        string sql = "SELECT DISTINCT city FROM hotels ORDER BY city ASC;";
+        await using MySqlCommand command = new MySqlCommand(sql, connection);
+        await using MySqlDataReader reader = await command.ExecuteReaderAsync();
+        
+        List<string> cities = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            cities.Add(reader.GetString("city"));
+        }
+        return cities;
+    }
+
+    // method to search with filters and sorting
+    public async Task<List<Room>> SearchRooms(
+        string city,
+        DateTime checkIn,
+        DateTime checkOut,
+        int guests,
+        bool requirePool,
+        bool requireRestaurant,
+        int? maxBeach,
+        int? maxCenter,
+        bool sortByRating)
+    {
+        // if else to sort order 
+        string orderByClause;
+        if (sortByRating)
+        {
+            orderByClause = "h.rating DESC";
+        }
+        else
+        {
+            orderByClause = "r.price_per_night ASC";
+        }
+        // query for filtration
+        string sql = $@"
+            SELECT h.name AS hotel_name, h.city, r.id, r.hotels_id, r.room_number, 
+                   r.capacity, r.price_per_night, h.rating
             FROM rooms r
             JOIN hotels h ON r.hotels_id = h.id
             WHERE h.city = @city
-            AND r.capacity >= @guests
-            AND r.id NOT IN (
-                SELECT b.room_id 
-                FROM bookings b
-                WHERE b.check_in < @checkOut AND b.check_out > @checkIn
-            );";
+              AND r.capacity >= @guests
+              AND (@requirePool = FALSE OR h.pool = TRUE)
+              AND (@requireRestaurant = FALSE OR h.restaurant = TRUE)
+              AND (@maxBeach IS NULL OR h.distance_beach <= @maxBeach)
+              AND (@maxCenter IS NULL OR h.distance_center <= @maxCenter)
+              AND r.id NOT IN (
+                  SELECT room_id
+                  FROM bookings
+                  WHERE check_in < @checkOut
+                  AND check_out > @checkIn
+              )
+            ORDER BY {orderByClause};";
 
         await using MySqlCommand command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@city", city);
         command.Parameters.AddWithValue("@guests", guests);
         command.Parameters.AddWithValue("@checkIn", checkIn);
         command.Parameters.AddWithValue("@checkOut", checkOut);
-        // executes query, creates list and holds room object 
+        command.Parameters.AddWithValue("@requirePool", requirePool);
+        command.Parameters.AddWithValue("@requireRestaurant", requireRestaurant);
+        command.Parameters.AddWithValue("@maxBeach", (object?)maxBeach ?? DBNull.Value);
+        command.Parameters.AddWithValue("@maxCenter", (object?)maxCenter ?? DBNull.Value);
+
         await using MySqlDataReader reader = await command.ExecuteReaderAsync();
         List<Room> rooms = new List<Room>();
 
-        // while-loop loops through room records and adds it to the list
         while (await reader.ReadAsync())
         {
             rooms.Add(new Room(
@@ -127,5 +171,4 @@ public class BookingRepository(MySqlConnection connection)
         int rowsAffected = await command.ExecuteNonQueryAsync();
         return rowsAffected > 0;
     }
-
 }

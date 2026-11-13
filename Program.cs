@@ -177,6 +177,11 @@ static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? act
     while (true)
     {
         Console.WriteLine("--SEARCH AVAILABLE ROOMS--");
+        List<string> cities = await bookingRepo.GetAvailableCities();
+        if (cities.Count > 0)
+        {
+            Console.WriteLine($"Available cities: {string.Join(", ", cities)}");
+        }
         // search input using helpers for available rooms
         string city = InputHelper.ReadString("City: ");
         DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
@@ -187,9 +192,34 @@ static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? act
         Console.WriteLine("\n--FILTERS--");
         bool requirePool = InputHelper.ReadYesNo("Pool required? (y/n): ");
         bool requireRestaurant = InputHelper.ReadYesNo("Restaurant required? (y/n): ");
+        int? maxBeach = InputHelper.ReadOptionalInt("Max distance to beach in meters (press ENTER to skip): ");
+        int? maxCenter = InputHelper.ReadOptionalInt("Max distance to center in meters (press ENTER to skip): ");
+
+        Console.WriteLine("\n-- SORTING --");
+        Console.WriteLine("1. Price per night (lowest first)");
+        Console.WriteLine("2. Hotel rating (highest first)");
+        bool sortByRating = false;
+        while (true)
+        {
+            string sortingChoice = InputHelper.ReadString("Choose sorting 1 or 2: ");
+            if (sortingChoice == "2")
+            {
+                sortByRating = true;
+                break;
+            }
+            else if (sortingChoice == "1")
+            {
+                sortByRating = false;
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Please enter 1 or 2.");
+            }
+        }
 
         // searches available rooms that match the criteria & displays results
-        List<Room> availableRooms = await bookingRepo.SearchRooms(city, checkIn, checkOut, guests);
+        List<Room> availableRooms = await bookingRepo.SearchRooms(city, checkIn, checkOut, guests, requirePool, requireRestaurant, maxBeach, maxCenter, sortByRating);
         Console.WriteLine($"\n-- SEARCH RESULTS ({availableRooms.Count} available) --");
         if (availableRooms.Count == 0)
         {
@@ -204,7 +234,7 @@ static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? act
 
         foreach (Room r in availableRooms)
         {
-            Console.WriteLine($"Room ID: {r.Id} Hotel: {r.HotelName} ({r.City}) | Room: {r.RoomNumber} | Capacity: {r.Capacity} | Price: {r.PricePerNight:C}/night");
+            Console.WriteLine($"Room ID: {r.Id} Hotel: {r.HotelName} ({r.City}) | Room: {r.RoomNumber} | Capacity: {r.Capacity} | Price: {r.PricePerNight:C}/night | Rating: {r.Rating}/5");
         }
 
         // operator gets option to book a room or exit results

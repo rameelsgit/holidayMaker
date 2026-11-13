@@ -75,5 +75,23 @@ public static class InputHelper
             Console.WriteLine("Enter 'y' or 'n'.");
         }
     }
+    // input helper for distance of beach and city
+    public static int? ReadOptionalInt(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string input = Console.ReadLine()!;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return null;
+            }
+            if (int.TryParse(input, out int result) && result >= 0)
+            {
+                return result;
+            }
+            Console.WriteLine("Please enter a valid number (0 or higher), or press ENTER to skip.");
+        }
+    }
 
 }
