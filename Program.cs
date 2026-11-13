@@ -27,18 +27,18 @@ while (activeMenu)
     {
         Console.WriteLine("No Customer Chosen\n");
     }
+
     // menu options
     Console.WriteLine("1. Show all customers");
     Console.WriteLine("2. Register new customer");
     Console.WriteLine("3. Choose customer");
-    Console.WriteLine("4. Find available rooms");
-    Console.WriteLine("5. Create a booking");
-    Console.WriteLine("6. Show customer bookings");
-    Console.WriteLine("7. Update amount of guests");
-    Console.WriteLine("8. Cancel a booking");
-    Console.WriteLine("9. Exit");
+    Console.WriteLine("4. Search & book a room (choose customer first)");
+    Console.WriteLine("5. Show customer bookings");
+    Console.WriteLine("6. Update amount of guests");
+    Console.WriteLine("7. Cancel a booking");
+    Console.WriteLine("8. Exit");
     Console.WriteLine("\n");
-    Console.Write("Choose an option 1-9: ");
+    Console.Write("Choose an option 1-8: ");
 
     // stores operators choice in choice variable to know which case to use
     string? choice = Console.ReadLine();
@@ -55,21 +55,18 @@ while (activeMenu)
             selectedCustomer = await ChooseCustomer(customerRepo);
             break;
         case "4":
-            await SearchRooms(bookingRepo);
-                break;
-        case "5":
-            await CreateBooking(bookingRepo, selectedCustomer);
+            await SearchAndBookRoom(bookingRepo, selectedCustomer);
             break;
-        case "6":
+        case "5":
             await ShowCustomerBookings(bookingRepo, selectedCustomer);
             break;
-        case "7":
+        case "6":
             await UpdateGuests(bookingRepo);
             break;
-        case "8":
+        case "7":
             await DeleteBooking(bookingRepo);
             break;
-        case "9":
+        case "8":
             activeMenu = false;
             Console.WriteLine("Menu has been exited");
             break;
@@ -79,6 +76,7 @@ while (activeMenu)
             break;
     }
 }
+
 // method that shows existing customers
 static async Task ListCustomers(CustomerRepository repo)
 {
@@ -99,6 +97,7 @@ static async Task ListCustomers(CustomerRepository repo)
     }
     Wait();
 }
+
 // method that creates customer 
 static async Task<Customer?> CreatedCustomer(CustomerRepository repo)
 {
@@ -117,7 +116,8 @@ static async Task<Customer?> CreatedCustomer(CustomerRepository repo)
     
     return newCustomer;
 }
-// method for chooseing a customer
+
+// method for choosing a customer
 static async Task<Customer?> ChooseCustomer(CustomerRepository repo)
 {
     Console.WriteLine("--CHOOSE A CUSTOMER--");
@@ -150,15 +150,15 @@ static async Task<Customer?> ChooseCustomer(CustomerRepository repo)
     {
         Customer? foundCustomer = null;
 
-    // loops through each customer comparing the inputted id with the customers id
-    foreach (Customer c in customers)
-    {
-        if (c.Id == selectedId)
+        // loops through each customer comparing the inputted id with the customers id
+        foreach (Customer c in customers)
         {
-            foundCustomer = c;
-            break;
+            if (c.Id == selectedId)
+            {
+                foundCustomer = c;
+                break;
+            }
         }
-    }
         if (foundCustomer != null)
         {
             Console.WriteLine($"\nChosen Customer: {foundCustomer.Name}");
@@ -167,66 +167,95 @@ static async Task<Customer?> ChooseCustomer(CustomerRepository repo)
         }
     }
     // if customer id is not found
-    Console.WriteLine($"\nNo customer found with that ID");
+    Console.WriteLine("\nNo customer found with that ID");
     Wait();
     return null;
 }
-
-// method handles the searching of rooms
-static async Task SearchRooms(BookingRepository repo)
+// method combines search and book available room
+static async Task SearchAndBookRoom(BookingRepository bookingRepo, Customer? activeCustomer)
 {
-    Console.WriteLine("-- SEARCH ROOMS --");
-    // changed to input helpers as too much code was being repeated
-    string city = InputHelper.ReadString("City: ");
-    DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
-    DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
-    int guests = InputHelper.ReadInt("Guests: ");
-    // matching available rooms with the database
-    List<Room> rooms = await repo.SearchRooms(city, checkIn, checkOut, guests);
+    while (true)
+    {
+        Console.WriteLine("--SEARCH AVAILABLE ROOMS--");
+        // search input using helpers for available rooms
+        string city = InputHelper.ReadString("City: ");
+        DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
+        DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
+        int guests = InputHelper.ReadInt("Number of guests: ");
 
-    // shows resukt of searched rooms
-    Console.WriteLine($"\n--SEARCH RESULTS ({rooms.Count} found)--");
-    if (rooms.Count == 0)
-    {
-        Console.WriteLine("No available rooms matched your search");
-    }
-    else
-    {
-        foreach (Room r in rooms)
+        // searches available rooms that match the criteria & displays results
+        List<Room> availableRooms = await bookingRepo.SearchRooms(city, checkIn, checkOut, guests);
+        Console.WriteLine($"\n-- SEARCH RESULTS ({availableRooms.Count} available) --");
+        if (availableRooms.Count == 0)
         {
-            Console.WriteLine($"Room ID: {r.Id} | Hotel: {r.HotelName} | Room No: {r.RoomNumber} | Price: {r.PricePerNight:C}/night");
+            Console.WriteLine("No rooms matched your search");
+            Console.Write("Do you want to search again? (y/n): ");
+            string retry = Console.ReadLine()!.Trim().ToLower();
+            if (retry == "y")
+            {
+                Console.WriteLine();
+                continue;
+            }
+            return;
         }
-    }
-    Wait();
-}
-// method to create a booking 
-static async Task CreateBooking(BookingRepository repo, Customer? activeCustomer)
-{
-    // checks if a customer has been chosen for a booking
-    if (activeCustomer == null)
-    {
-        Console.WriteLine("Choose a customer before creating a booking");
+
+        foreach (Room r in availableRooms)
+        {
+            Console.WriteLine($"Room ID: {r.Id} Hotel: {r.HotelName} ({r.City}) | Room: {r.RoomNumber} | Capacity: {r.Capacity} | Price: {r.PricePerNight:C}/night");
+        }
+
+        // operator gets option to book a room or exit results
+        Console.Write("\nDo you want to book one of these rooms? (y/n): ");
+        string answer = Console.ReadLine()!.Trim().ToLower();
+        if (answer != "y")
+        {
+            return;
+        }
+        // makes sure a customer is chosen for a booking
+        if (activeCustomer == null)
+        {
+            Console.WriteLine("\nNo customer chosen, choose or register a customer from the main menu first");
+            Wait();
+            return;
+        }
+
+        Room? selectedRoom = null;
+        while (selectedRoom == null)
+        {
+            // operator choses an id to book 
+            int chosenRoomId = InputHelper.ReadInt($"\nBooking for {activeCustomer.Name}, Enter room ID: ");
+            // find the chosen room in availableRooms list to check if available
+            foreach (Room r in availableRooms)
+            {
+                if (r.Id == chosenRoomId)
+                {
+                    selectedRoom = r;
+                    break;
+                }
+            }
+            // stop if id doesnt exist
+            if (selectedRoom == null)
+            {
+                Console.WriteLine($"Room ID {chosenRoomId} is not in the available rooms list above. Try again.");
+            }
+        }
+
+        // calculate nights and total price using the rooms pricepernight
+        int nights = (checkOut - checkIn).Days;
+        decimal totalPrice = nights * selectedRoom.PricePerNight;
+        //saves booking to databas and displays result
+        int bookingId = await bookingRepo.CreateBooking(activeCustomer.Id, selectedRoom.Id, checkIn, checkOut, guests, totalPrice);
+        Console.WriteLine($"\nBooking completed. Booking ID: {bookingId}");
+        Console.WriteLine($"Customer: {activeCustomer.Name}");
+        Console.WriteLine($"Hotel: {selectedRoom.HotelName} | Room: {selectedRoom.RoomNumber}");
+        Console.WriteLine($"{nights} nights x {selectedRoom.PricePerNight:C}/night | Total price: {totalPrice:C}");
+
         Wait();
         return;
     }
-
-    Console.WriteLine($"-- CREATE BOOKING FOR: {activeCustomer.Name} --");
-    // using input helpers as the validation for these input fields was the same and too long
-    int roomId = InputHelper.ReadInt("Enter Room ID to book: ");
-    DateTime checkIn = InputHelper.ReadDate("Check-in (YYYY-MM-DD): ");
-    DateTime checkOut = InputHelper.ReadCheckOutDate("Check-out (YYYY-MM-DD): ", checkIn);
-    int guests = InputHelper.ReadInt("Number of guests: ");
-    // calculating total price 
-    int nights = (checkOut - checkIn).Days;
-    decimal totalPrice = nights * 1000;
-    // booking gets added to the database
-    int bookingId = await repo.CreateBooking(activeCustomer.Id, roomId, checkIn, checkOut, guests, totalPrice);
-    Console.WriteLine($"Booking completed | booking ID: {bookingId}");
-    Console.WriteLine($"{nights} nights | Total price: {totalPrice:C}");
-    Wait();
 }
 
-// method shows a all of a customers bookings 
+// method shows all of a customers bookings 
 static async Task ShowCustomerBookings(BookingRepository repo, Customer? activeCustomer)
 {   //makes sure customer is chosen
     if (activeCustomer == null)
