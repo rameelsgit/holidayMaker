@@ -106,15 +106,24 @@ static async Task<Customer?> CreatedCustomer(CustomerRepository repo)
     string name = InputHelper.ReadString("Full name: ");
     string email = InputHelper.ReadString("Email: ");
     string phone = InputHelper.ReadString("Phone Number: ");
-    // save customer to database with a new id
-    int newId = await repo.CreateCustomer(name, email, phone);
-    
-    // creates the  new customer object
-    Customer newCustomer = new Customer(newId, name, email, phone);
-    Console.WriteLine($"\nCustomer has been registered. New Customer: id {newId}, {newCustomer}");
-    Wait();
+    try {
+        // save customer to database with a new id
+        int newId = await repo.CreateCustomer(name, email, phone);
+        
+        // creates the  new customer object
+        Customer newCustomer = new Customer(newId, name, email, phone);
+        Console.WriteLine($"\nCustomer has been registered. New Customer: id {newId}, {newCustomer}");
+        Wait();
     
     return newCustomer;
+    }
+    // try catch preventing the program from crasching when same email is entered.  
+    catch (MySqlException)
+    {
+        Console.WriteLine("\nCould not register customer. Email might already exist");
+        Wait();
+        return null;
+    }
 }
 
 // method for choosing a customer
